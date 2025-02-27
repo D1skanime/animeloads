@@ -1,6 +1,9 @@
 import requests, http.cookiejar
 
 import myjdapi
+from send_to_jd2 import send_to_myjd
+
+
 
 from lxml import etree
 from lxml import html
@@ -26,6 +29,10 @@ from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import selenium.webdriver.chrome.options
 import selenium.webdriver.firefox.options
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from fake_useragent import UserAgent
 
 
 #captcha
@@ -45,22 +52,30 @@ class animeloads:
         self.session = requests.session()
         self.username = "anonymous"
         self.isVIP = False
-        self.session.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'}
-        if(user != "" and pw != ""):
+        ua = UserAgent()
+        self.session.headers = {'User-Agent': ua.chrome}
+
+        if user and pw:
             self.login(self.user, self.pw)
             
-        if(browser == animeloads.CHROME):
-            options = selenium.webdriver.chrome.options.Options()
-            options.headless = True
-            if(browserloc != ""):
-                options.binary_location = browserloc
-            driver = webdriver.Chrome(service_log_path=os.devnull, options=options)
-        elif(browser == animeloads.FIREFOX):
-            options = selenium.webdriver.firefox.options.Options()
-            options.headless = True
-            if(browserloc != ""):
-                options.binary_location = browserloc
-            driver = webdriver.Firefox(service_log_path=os.devnull, options=options)
+        if browser == animeloads.CHROME:
+            options = webdriver.ChromeOptions()
+            options.headless = True  # Headless-Modus aktivieren
+
+            if browserloc:
+                options.binary_location = browserloc  # Falls ein bestimmter Browser-Pfad angegeben ist
+
+            driver = webdriver.Chrome(options=options)  # Selenium Manager übernimmt den Rest
+
+        elif browser == animeloads.FIREFOX:
+            options = webdriver.FirefoxOptions()
+            options.headless = True  
+
+            if browserloc:
+                options.binary_location = browserloc  
+
+            driver = webdriver.Firefox(options=options)  # Kein manuelles Service-Objekt mehr nötig
+
         else:
             raise ALInvalidBrowserException("Nicht unterstützter Browser")
 
@@ -154,8 +169,9 @@ class animeloads:
 
     def login(self, user, pw):
         data = {"identity": user, "password": pw, "remember": "1"}
+        ua = UserAgent()
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
+            'User-Agent': ua.random
         }
         r = self.session.post("https://www.anime-loads.org/auth/signin", data=data, headers=headers)
 
@@ -177,12 +193,6 @@ class animeloads:
 class utils:
     @staticmethod
     def decodeCNL(k, crypted):
-#        k_list = list(k)
-#        tmp = k_list[15]
-#        k_list[15] = k_list[16]
-#        k_list[16] = tmp
-#        k = "".join(k_list)
-
         key = unhexlify(k)
         data = base64.standard_b64decode(crypted)
         obj = AES.new(key, AES.MODE_CBC, key)
@@ -840,59 +850,23 @@ class anime():
         data = {"enc": b64,
        "response": "nocaptcha"}
 
-        ######################################
-        #Requests code ohne benötigten Browser, wird allerdings als adblock erkannt
-        ######################################
-
-
-#        headers = {
-#        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36',
-#        "Referer": self.url,
-#        "Accept": "application/json, text/javascript, */*; q=0.01",
-#        "Accept-Language": "en-US,en;q=0.5",
-#        "Connection": "keep-alive",
-#        "Content-Length": "83",
-#        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-#        "TE": "Trailers",
-#        "X-Requested-With": "XMLHttpRequest",
-#        "Cookie": "ci_session=a%3A4%3A%7Bs%3A10%3A%22session_id%22%3Bs%3A32%3A%227fda60af7999159425b7143f63cd5202%22%3Bs%3A10%3A%22ip_address%22%3Bs%3A13%3A%2289.244.161.10%22%3Bs%3A10%3A%22user_agent%22%3Bs%3A94%3A%22Mozilla%2F5.0+%28Windows+NT+10.0%3B+Win64%3B+x64%3B+rv%3A78.0%29+Gecko%2F20100101+Firefox%2F78.0+Waterfox%2F78.7.0%22%3Bs%3A13%3A%22last_activity%22%3Bi%3A1612911522%3B%7D3a772b4afefd4887a6eba3fffd868265c5769de6"
-#        }
-
-#        print("Session Cookies: " + str(cock))
-#        r = requests.post("https://webhook.site/75132056-b86a-4285-ab83-2cf785a202a1", data=data, headers=headers)
-#        rad = self.session.get("https://www.anime-loads.org/assets/pub/js/ads.com/ads.js?cb=13881964231")
-#        print(rad.text)
-#        print(rad.status_code)
-#        print(rad.cookies)
-#        r = self.session.post("https://www.anime-loads.org/ajax/captcha", data=data)
-#        print(r.text)
-#        r.raw.decode_content = True
-#        print("Response: " + str(r.text))
-#        cock = [
-#            {'name': c.name, 'value': c.value, 'domain': c.domain, 'path': c.path}
-#            for c in self.session.cookies
-#        ]
-#        print("d_Cock: " + str(cock))
-#        print("\n\n\n\ndl_Other cookies: " + str(r.cookies))
-
-
-        ############################################################################
-        #Solange wird dieser Code benutzt, benötigt einen Browser, funktioniert aber
-        ############################################################################
-
         #Create Headless browser to bypass adblock detection
-        if(browser == animeloads.CHROME):
-            options = selenium.webdriver.chrome.options.Options()
-            options.headless = True
-            if(browserlocation != ""):
+        if browser == animeloads.CHROME:
+            options = webdriver.ChromeOptions()
+            options.headless = True  # Headless-Modus aktivieren
+
+            if browserlocation:
                 options.binary_location = browserlocation
-            driver = webdriver.Chrome(service_log_path=os.devnull, options=options)
+
+            driver = webdriver.Chrome(options=options)
+
         elif(browser == animeloads.FIREFOX):
-            options = selenium.webdriver.firefox.options.Options()
+            options = webdriver.FirefoxOptions()
             options.headless = True
-            if(browserlocation != ""):
+
+            if browserlocation:
                 options.binary_location = browserlocation
-            driver = webdriver.Firefox(service_log_path=os.devnull, options=options)
+            driver = webdriver.Firefox(options=options)
         else:
             raise ALInvalidBrowserException("Nicht unterstützter Browser")
 
@@ -1028,21 +1002,20 @@ return xhr.response"
 
         if(pkgName == ""):
             pkgName = anime_identifier
-        if(jdhost != "" and myjd_user == ""):
-            return utils.addToJD(jdhost, release.getPassword(), self.url, crypted, jk)
-        elif(jdhost == "" and myjd_user != ""):
+        if(jdhost == "" and myjd_user != ""):
             try:
                 links_decoded = utils.decodeCNL(k, crypted)
                 print("Successfully decoded links")
             except:
                 print("Failed to decode links")
                 raise ALUnknownException("Failed to decode links")
-            links = []
-            linkstring = ""
-            for link in links_decoded:
-                linkstring += link.decode('utf-8')
+          #  links = []
+           # linkstring = ""
             try:
-                 myjd_return = utils.addToMYJD(myjd_user, myjd_pw, myjd_device, linkstring, pkgName, release.getPassword())
+                for link in links_decoded:
+                    decoded_link = link.decode('utf-8')
+                    myjd_return = utils.addToMYJD(myjd_user, myjd_pw, myjd_device, decoded_link, pkgName, release.getPassword())
+                   # myjd_return = utils.addToMYJD(myjd_user, myjd_pw, myjd_device, decoded_link, pkgName, release.getPassword())
             except:
                 print("Failed to add Link to MyJD")
                 raise ALUnknownException("Failed to add Link to MyJD")

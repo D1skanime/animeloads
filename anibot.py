@@ -16,7 +16,7 @@ import myjdapi
 
 pb = ""
 
-botfile = "config/test.json"
+botfile = "config/ani.json"
 botfolder = "config/"
 
 def is_docker():
@@ -46,186 +46,246 @@ def printException(e):
     print("Error:")
     print(exc_type, fname, exc_tb.tb_lineno)
 
-# Die Funktion loadconfig() lädt eine Konfigurationsdatei (ani.json), verarbeitet sie und gibt die Konfigurationswerte zurück. 
-# Falls ein Fehler auftritt, gibt sie neunmal False zurück.
-def loadconfig(): 
+def loadconfig():
     try:
         os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-        # Datei sicher öffnen und schliessen in einem
-        with open(botfile, "r") as infile:
-            data = json.load(infile)
-
+        infile = open(botfile, "r")
+        data = json.load(infile)
+        infile.close()
     except Exception as e:
         printException(e)
-        print(botfile, "nicht gefunden im path", os.path.dirname(botfolder) )
-        return (False,) *9
-    
-    settings = data.get("settings")
-    if not settings:
-            print("Fehlerhafte ani.json Konfiguration")
-            return (False,) * 9
-
-    try:
-            return (
-                settings["jdhost"],
-                settings["hoster"],
-                settings["browserengine"],
-                settings["browserlocation"],
-                settings["pushbullet_apikey"],
-                settings["timedelay"],
-                settings["myjd_user"],
-                settings["myjd_pw"],
-                settings["myjd_device"],
-            )
-    except Exception as e:
+        print("ani.json nicht gefunden, ")
+        return False, False, False, False, False, False, False, False, False
+    for key in data:
+        if(key == "settings"):
+            try:
+                value = data[key]
+                jdhost = value['jdhost']
+                hoster = value['hoster']
+                browser = value['browserengine']
+                browserlocation = value['browserlocation']
+                pushkey = value['pushbullet_apikey']
+                timedelay = value['timedelay']
+                myjd_user = value['myjd_user']
+                myjd_pass = value['myjd_pw']
+                myjd_device = value['myjd_device']
+            except Exception as e:
                 printException(e)
                 print("Fehlerhafte ani.json Konfiguration")
-                return (False,) * 9
+                return False, False, False, False, False, False, False, False, False
+    return jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device
 
 def editconfig():
-    config_path = os.path.dirname(botfolder)
-    os.makedirs(config_path, exist_ok=True)  # Erstellt den Ordner, falls nicht vorhanden
-
-    # Standardwerte setzen
-    jdhost = hoster = browser = browserlocation = pushkey = ""
-    timedelay = myjd_user = myjd_pw = myjd_device = ""
-
-    # 🟢 Config laden, falls vorhanden
     try:
-        with open(botfile, "r") as infile:
-            data = json.load(infile)
+        os.makedirs(os.path.dirname(botfolder), exist_ok=True)
+        infile = open(botfile, "r")
+        data = json.load(infile)
+        infile.close()
+        for key in data:
+            if(key == "settings"):
+                value = data[key]
+                jdhost = value['jdhost']       
+                hoster = value['hoster']
+                browser = value['browserengine']
+                browserlocation = value['browserlocation']
+                pushkey = value['pushbullet_apikey']
+                timedelay = value['timedelay']
+                myjd_user = value['myjd_user']
+                myjd_pass = value['myjd_pw']
+                myjd_device = value['myjd_device']
+    except:
+        jdhost = ""
+        hoster = ""
+        browser = ""
+        browserlocation = ""
+        pushkey = ""
+        timedelay = ""
+        myjd_user = ""
+        myjd_pw = ""
+        myjd_device = ""
 
-        settings = data.get("settings", {})
-        jdhost = settings.get("jdhost", "")
-        hoster = settings.get("hoster", "")
-        browser = settings.get("browserengine", "")
-        browserlocation = settings.get("browserlocation", "")
-        pushkey = settings.get("pushbullet_apikey", "")
-        timedelay = settings.get("timedelay", "")
-        myjd_user = settings.get("myjd_user", "")
-        myjd_pw = settings.get("myjd_pw", "")
-        myjd_device = settings.get("myjd_device", "")
+    if(hoster == 2):
+        hosterstr = "rapidgator"
+    if(hoster == 1):
+        hosterstr = "ddownload"
+    elif(hoster == 0):
+        hosterstr = "uploaded"
+    changehoster  = True
+    if(hoster != ""):
+        if(compare(input("Dein gewählter hoster: " + hosterstr + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+            changehoster = False
+    if(changehoster):
+        while(True):
+            host = input("Welchen hoster bevorzugst du? uploaded, rapidgator oder ddownload: ")
+            if("uploaded" in host):
+                hoster = animeloads.UPLOADED
+                break
+            elif("ddownload" in host):
+                hoster = animeloads.DDOWNLOAD
+                break
+            elif("rapidgator" in host):
+                hoster = animeloads.RAPIDGATOR
+                break
+            else:
+                print("Bitte gib entweder uploaded, rapidgator oder ddowwnload ein")
 
-    except FileNotFoundError:
-        print(f"⚠️ Konfigurationsdatei '{botfile}' nicht gefunden. Standardwerte werden verwendet.")
-    except Exception as e:
-        print(f"❌ Fehler beim Laden der Konfiguration: {e}")
+    change_jdhost = True
 
-    # 🟢 Hoster auswählen
-    hoster_dict = {0: "uploaded", 1: "ddownload", 2: "rapidgator"}
-    if hoster in hoster_dict.values():
-        if not confirm(f"Dein gewählter Hoster: {hoster}. Ändern?"):
-            new_hoster = hoster
-        else:
-            new_hoster = select_option("Welchen Hoster bevorzugst du?", hoster_dict)
+
+    jd_device = ""
+    jd_user = ""
+    jd_pass = ""
+
+    jd_choice = input("Läuft Jdownloader auf deinem lokalen Rechner[1] oder möchtest du MyJDownloader nutzen[2]?  (1 oder 2): ")
+    if(jd_choice == "1"):
+        if(jdhost != ""):
+            if(compare(input("Deine Adresse des Computers, auf dem JDownloader läuft lautet: " + jdhost + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+                change_jhdhost = False
+      
+        if(change_jdhost):
+            if(input("Läuft dein JD2 auf deinem Lokalen Computer? Dann Eingabe leer lassen und bestätigen, falls nicht, gib die Adresse des Zeilrechners an: ") != ""):
+                jdhost = input
+            else:
+                jdhost = "127.0.0.1"
+        jd_device = ""
+        jd_pass = ""
+        jd_user = ""
+    
     else:
-        new_hoster = select_option("Welchen Hoster möchtest du?", hoster_dict)
-
-    # 🟢 JDownloader Konfiguration
-    jd_choice = input("JDownloader lokal[1] oder MyJDownloader[2]? (1/2): ").strip()
-    
-    if jd_choice == "1":
-        jdhost = input("Adresse des JDownloader-Servers (leer lassen für '127.0.0.1'): ").strip() or "127.0.0.1"
-        myjd_user = myjd_pw = myjd_device = ""
-    
-    else:  # MyJDownloader wählen
-        from myjdapi import Myjdapi
-
-        jd = Myjdapi()
+        jd_choice = 2
+        jd=myjdapi.Myjdapi()
         jd.set_app_key("animeloads")
-
-        while True:
-            myjd_user = input("MyJDownloader Nutzername: ")
-            myjd_pw = getpass("MyJDownloader Passwort: ")
-
+        
+        logincorrect = False
+        while(logincorrect == False):
+            jd_user = input("MyJdownloader Nutzername: ")
+            jd_pass = getpass("MyJdownloader Passwort: ")
+            
             try:
-                jd.connect(myjd_user, myjd_pw)
-                break
+              jd.connect(jd_user, jd_pass)
+              logincorrect = True
             except:
-                print("❌ Fehlerhafte Logindaten. Bitte erneut eingeben.")
-
-        print("✅ Login erfolgreich!")
+                print("Fehlerhafte Logindaten")
+        
+        print("Logindaten sind korrekt")
         jd.update_devices()
-        devices = jd.list_devices()
-
-        print("📌 Verfügbare Geräte:")
+        devices = jd.list_devices() 
+        
+        print("Deine verbundenen Geräte: ")
         for dev in devices:
-            print(f"- {dev['name']}")
-
-        while True:
-            myjd_device = input("Gerätenamen eingeben: ")
-            if any(dev['name'] == myjd_device for dev in devices):
-                break
-            print("❌ Gerät nicht gefunden, bitte erneut eingeben.")
-
-        if not confirm("Möchtest du das MyJDownloader Passwort speichern? (Unsicher!)"):
-            myjd_pw = ""
+            print(dev['name'])
+        
+        foundDevice = False
+        while(foundDevice == False):
+            jd_device = input("Gib den Namen des Gerätes, welches du benutzen willst ein: ")
+            for dev in devices:
+                devname = dev['name']
+                if(jd_device == devname):
+                    foundDevice = True
+                    break
+            if(foundDevice == False):
+                print("Gerät nicht gefunden...")
+        
+        print("Nutze Gerät: " + jd_device)
+        
+        if(compare(input("Möchtest du das MyJDownloader passwort speichern (unverschlüsselt!!!)? Andernfalls musst du es jeden Programmstart eingeben [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+            jd_pass = ""
 
         jdhost = ""
 
-    # 🟢 Browserwahl
-    browser_dict = {1: "Firefox", 2: "Chrome"} 
-    if "--docker" in sys.argv:
-        browser = 0  # Immer Firefox in Docker
+    if(browser == 0):
+        browserstring = "Firefox"
+    elif(browser == 1):
+        browserstring = "Chrome"
+
+    if("--docker" in sys.argv):
+        browser = animeloads.FIREFOX
+        print("Überspringe Browserwahl, da in Docker")
     else:
-        browser = select_option("Welchen Browser möchtest du nutzen?", browser_dict)
+        changebrowser = True
+        if(browser != ""):
+            if(compare(input("Dein gewählter Browser: " + browserstring + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+                changebrowser = False
+        if(changebrowser):
+            while(True):
+                browser = input("Welchen Browser möchtest du nutzen? Darunter fallen auch forks der jeweiligen Browser (Chrome/Firefox)? Achte darauf, dass Chromedriver (Chrome) oder Geckodriver (Firefox) im gleichen Ordern wie das Script liegt: ")
+                if(browser == "Chrome"):
+                    browser = animeloads.CHROME
+                    break
+                elif(browser == "Firefox"):
+                    browser = animeloads.FIREFOX
+                    break
+                else:
+                    print("Fehlerhafter Input, entweder Chrome oder Firefox")
+                    
+            if(compare(input("Ist dein Browser ein fork von chrome/firefox oder an einem anderen als dem standardpfad installiert? [J/N]: "), {"j", "ja", "yes", "y"})):
+                browserloc = input("Dann gib jetzt den Pfad der Browserdatei an (inklusive Endung): ")
 
-        if confirm("Ist dein Browser ein Fork oder an einem anderen Ort installiert?"):
-            browserlocation = input("Pfad zur Browserdatei: ").strip()
 
-    # 🟢 Pushbullet API
-    pushkey = input("Pushbullet API-Key (leer lassen für keine Benachrichtigung): ").strip()
+    change_pushbullet = True
 
-    # 🟢 Zeitintervall für Updates
-    while True:
-        try:
-            timedelay = int(input("Wartezeit zwischen Updates (Sekunden, empfohlen: 600): ").strip())
-            break
-        except ValueError:
-            print("❌ Ungültige Eingabe! Bitte eine Zahl eingeben.")
+    if(pushkey != ""):
+        if(compare(input("Dein Pushbullet API-Key ist: " +  pushkey + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+            change_pushbullet == False
+    
+    if(change_pushbullet):
+        print("Hier kannst du deinen Pushbullet Account verbinden, damit du benachrichtigt wirst, wenn neue Folgen verfügbar sind und runtergeladen werden")
+        if(compare(input("Möchtest du Pushbullet verwenden? [J/N]: "), {"j", "ja", "yes", "y"})):
+            pushkey = input("Dann gib hier deinen Access Token ein (https://www.pushbullet.com/#settings): ")
+        else:
+            pushkey = ""
 
-    # 🟢 Konfiguration speichern
-    new_settings = {
-        "hoster": new_hoster,
+    change_timedelay = True
+    if(timedelay != ""):
+        if(compare(input("Deine Pause zwischen den Episodenupdates ist: " +  str(timedelay) + ", möchtest du sie ändern? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
+            change_timedelay = False
+
+    if(change_timedelay):
+        while(True):
+            print("Hier kannst du deine Zeit, die zwischen der Suche nach neuen Episoden gewartet wird, einstellen.")
+            timedelay_str = input("Wielange möchtest du warten? (In Sekunden. Empfohlen: 600 Sekunden (10 minuten)): ")
+            try:
+                timedelay = int(timedelay_str)
+                break
+            except:
+                print("Bitte gib eine korrekte Zahl ein")
+
+    settingsdata = {
+        "hoster": hoster,
         "browserengine": browser,
         "pushbullet_apikey": pushkey,
         "browserlocation": browserlocation,
         "jdhost": jdhost,
         "timedelay": timedelay,
-        "myjd_user": myjd_user,
-        "myjd_pw": myjd_pw,
-        "myjd_device": myjd_device
+        "myjd_user": jd_user,
+        "myjd_pw": jd_pass,
+        "myjd_device": jd_device
     }
 
+    ani_exists = True
+
     try:
-        with open(botfile, "w") as jfile:
-            json.dump({"settings": new_settings}, jfile, indent=4, sort_keys=True)
-        print(f"✅ Konfiguration erfolgreich gespeichert in '{botfile}'!")
-    except Exception as e:
-        print(f"❌ Fehler beim Speichern: {e}")
+        os.makedirs(os.path.dirname(botfolder), exist_ok=True)
+        f = open(botfile, "r")
+        data = json.load(f)
+        infile.close()
+    except:
+        ani_exists = False
 
-# 🛠 Hilfsfunktionen für Eingaben
-def confirm(prompt):
-    """ Fragt den Nutzer nach einer Ja/Nein-Bestätigung. """
-    return input(f"{prompt} [J/N]: ").strip().lower() in {"j", "ja", "y", "yes"}
-
-def select_option(prompt, options):
-    """ Lässt den Nutzer eine Option aus einem Dictionary auswählen. """
-    while True:
-        print(prompt)
-        for key, val in options.items():
-            print(f"  {key}: {val}")  # Reihenfolge von key und val korrigiert
-        
-        choice = input("Deine Auswahl: ").strip()
-
-        if choice.isdigit() and int(choice) in options:  # Eingabe in Integer umwandeln
-            return options[int(choice)]
-        
-        print("❌ Ungültige Eingabe, bitte erneut versuchen.")
-        print(f"DEBUG: Eingabe -> '{choice}' (Typ: {type(choice)})")
-        print(f"DEBUG: Existiert {int(choice)} in options? -> {int(choice) in options}")
-
-       
+    if(ani_exists):
+        data['settings'] = settingsdata
+        os.makedirs(os.path.dirname(botfolder), exist_ok=True)
+        jfile = open(botfile, "w")
+        jfile.write(json.dumps(data, indent=4, sort_keys=True))
+        jfile.flush()
+        jfile.close
+    else:
+        settingsdata = {"settings": settingsdata}
+        os.makedirs(os.path.dirname(botfolder), exist_ok=True)
+        jfile = open(botfile, "w")
+        jfile.write(json.dumps(settingsdata, indent=4, sort_keys=True))
+        jfile.flush()
+        jfile.close
 
 def addAnime():
     jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
@@ -519,7 +579,7 @@ def addAnime():
 
             print("\n\n\n")
 
-#Start der Main
+
 def startbot():
 
     jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
@@ -590,6 +650,7 @@ def startbot():
             anidata = data['anime']
         except:
             print("Du hast keine Anime in deiner Liste")
+            addAnime()
             return
 
         if(anidata != ""):
@@ -725,7 +786,7 @@ def printhelp():
     print("[add]:     Füge neue Anime zu deiner Liste hinzu")
     print("[remove]:  Lösche Anime aus deiner Liste")
 
-#Start der Main
+
 commandSet = False
 if(arglen >= 2):
     for idx, arg in enumerate(sys.argv):
