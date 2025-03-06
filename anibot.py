@@ -1,5 +1,8 @@
 import subprocess, sys, json, time, os, re
 from config_manager import loadconfig, editconfig
+from logger import log
+from error_handler import printException
+
 
 
 from getpass import getpass
@@ -29,24 +32,11 @@ def is_docker():
         return True
     return False
 
-def log(message, pushbullet):
-    try:
-        pushbullet.push_note("anibot", message)
-    except:
-        pass
-    print(message)
-
 def compare(inputstring, validlist):
     for v in validlist:
         if(v.lower() in inputstring.lower()):
             return True
     return False
-
-def printException(e):
-    exc_type, exc_obj, exc_tb = sys.exc_info()
-    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    print("Error:")
-    print(exc_type, fname, exc_tb.tb_lineno)
 
 def addAnime():
     jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
