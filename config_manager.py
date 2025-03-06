@@ -13,6 +13,7 @@ def printException(e):
 botfile = "config/ani.json"
 botfolder = "config/"
 
+
 def loadconfig():
     try:
         os.makedirs(os.path.dirname(botfolder), exist_ok=True)

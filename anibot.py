@@ -2,6 +2,10 @@ import subprocess, sys, json, time, os, re
 from config_manager import loadconfig, editconfig
 from logger import log
 from error_handler import printException
+from utils import compare
+from environment import is_docker
+from anime_manager import addAnime, removeAnime
+
 
 
 
@@ -13,7 +17,7 @@ from pushbullet import Pushbullet
 
 import animeloads
 
-from animeloads import animeloads
+from animeloads import Animeloads
 
 arglen = len(sys.argv)
 
@@ -23,313 +27,6 @@ pb = ""
 
 botfile = "config/ani.json"
 botfolder = "config/"
-
-def is_docker():
-  if not os.path.isfile("/proc/" + str(os.getpid()) + "/cgroup"): return False
-  with open("/proc/" + str(os.getpid()) + "/cgroup") as f:
-    for line in f:
-      if re.match("\d+:[\w=]+:/docker(-[ce]e)?/\w+", line):
-        return True
-    return False
-
-def compare(inputstring, validlist):
-    for v in validlist:
-        if(v.lower() in inputstring.lower()):
-            return True
-    return False
-
-def addAnime():
-    jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
- 
-    while(jdhost == False):
-        print("Noch keine oder Fehlerhafte konfiguration, leite weiter zu Einstellungen")
-        editconfig()
-        jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
-
-    al = animeloads(browser=browser, browserloc=browserlocation)
-    exit = False
-    search = False
-
-    while(exit == False):
-        search = False
-        print("Gib nun entweder eine URL zu einem Anime-Eintrag oder einen Namen, nach dem du suchen willst ein")
-        aniquery = input("URL/Anime (Du kannst jederzeit \"suche\" eingeben, um zurück zur Suche zu kommen oder \"exit\", um das Programm zu beenden): ")
-        if(aniquery == "exit"):
-            break
-        if("https://www.anime-loads.org/media/" in aniquery):
-            print("Hole Anime von URL: " + aniquery)
-            anime = al.getAnime(aniquery)
-
-            releases = anime.getReleases()
-        
-            print("\n\nReleases:\n")
-        
-            for rel in releases:
-                print(rel.tostring())
-    
-            print("\n")
-            relchoice = ""
-            while(True):
-                relchoice = input("Wähle eine Release ID: ")
-                if(relchoice == "exit"):
-                    exit = True
-                    break
-                elif(relchoice == "suche"):
-                    search = True
-                    break
-                try:
-                    relchoice = int(relchoice)
-                    if(relchoice <= len(releases)):
-                        break
-                    else:
-                        raise Exception()
-                except:
-                    print("Fehlerhafte Eingabe, versuche erneut")
-    
-            if(search or exit):
-                continue
-
-            release = releases[relchoice-1]
-            print("Du hast folgendes Release gewählt: " + str(release.tostring()))
-    
-            print("\n")
-
-            print("Das Release hat " + str(release.getEpisodeCount()) + " Episode(n)")
-            curEpisodes = -1
-            while(curEpisodes == -1):
-                epi_in = input("Wieviel Episoden hast du bereits runtergeladen? Die restlichen verfügbaren werden dann automatisch heruntergeladen (Leerlassen, wenn nur neue Episoden runterladen willst): ")
-                if(epi_in == "exit"):
-                    exit = True
-                    break
-                elif(epi_in == "suche"):
-                    search = True
-                    break
-                try:
-                    if(epi_in == ""):
-                        curEpisodes = release.getEpisodeCount()
-                    else:
-                        epi_in_int = int(epi_in)
-                        if(epi_in_int > release.getEpisodeCount()):
-                            print("Deine Episodenzahl darf nicht größer als verfügbare Episoden sein")
-                        else:
-                            curEpisodes = epi_in_int
-                except:
-                    print("Fehlerhafte Eingabe, muss eine Zahl sein")
-
-            print("\n")
-
-            customPackage = ""
-
-            if(compare(input("Möchtest du dem Anime einen spezifischen Paketnamen geben? Andernfalls wird der Name des Anime genutzt [J/N]: "), {"j", "ja", "yes", "y"}) == True):
-                customPackage = input("Packagename: ")
-
-            animedata = {
-                "name": anime.getName(),
-                "missing": [],
-                "releaseID": relchoice,
-                "episodes": curEpisodes,
-                "url": anime.getURL(),
-                "customPackage": customPackage
-            }
-        
-            os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-            f = open(botfile, "r")
-            data = json.load(f)
-            f.close()
-
-            haveAddedAnime = False
-
-            try:
-                anidata = data['anime']
-            except:
-                print("Erster Anime in Liste, füge hinzu")
-                fullanimedata = []
-                fullanimedata.append(animedata)
-                data['anime'] = fullanimedata 
-                haveAddedAnime = True
-                os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-                jfile = open(botfile, "w")
-                jfile.write(json.dumps(data, indent=4, sort_keys=True))
-                jfile.flush()
-                jfile.close()
-                print("Anime wurde hinzugefügt")
-
-            if(haveAddedAnime == False):              #Füge zu liste hinzu
-                isNewAnime = True
-                for animeentry in anidata:
-                    url = animeentry['url']
-                    release = animeentry['releaseID']
-                    if(url == anime.getURL() and release == relchoice):
-                        print("Anime mit gleichem Release ist bereits in Liste, gehe zurück zur Suche")
-                        isNewAnime = False
-                if(isNewAnime):
-                    print("Füge Anime zu liste hinzu")
-                    fullanimedata = data['anime']
-                    fullanimedata.append(animedata)
-                    data['anime'] = fullanimedata 
-#                animedata = {"anime": animedata}
-#                data.append(animedata)
-
-
-                    os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-                    jfile = open(botfile, "w")
-                    jfile.write(json.dumps(data, indent=4, sort_keys=True))
-                    jfile.flush()
-                    jfile.close()
-                    print("Anime wurde hinzugefügt")
-
-            print("\n\n\n")
-
-        elif(aniquery != "suche"):
-            results = al.search(aniquery)
-        
-            if(len(results) == 0):
-                print("Keine Ergebnisse")
-                search = True
-                break
-
-            print("Ergebnisse: ")
-    
-            for idx, result in enumerate(results):
-                print("[" + str(idx + 1) + "] " + result.tostring())
-    
-            while(True):
-                anichoice = input("Wähle einen Anime (Zahl links daneben eingeben): ")
-                if(anichoice == "exit"):
-                    exit = True
-                    break
-                elif(anichoice == "suche"):
-                    search = True
-                    break
-                try:
-                    anichoice = int(anichoice)
-                    anime = results[anichoice - 1].getAnime()
-                    break
-                except:
-                    print("Fehlerhafte eingabe, versuche erneut")
-    
-            if(search or exit):
-                continue
-
-            releases = anime.getReleases()
-        
-            print("\n\nReleases:\n")
-        
-            for rel in releases:
-                print(rel.tostring())
-    
-            print("\n")
-            relchoice = ""
-            while(True):
-                relchoice = input("Wähle eine Release ID: ")
-                if(relchoice == "exit"):
-                    exit = True
-                    break
-                elif(relchoice == "suche"):
-                    search = True
-                    break
-                try:
-                    relchoice = int(relchoice)
-                    if(relchoice <= len(releases)):
-                        break
-                    else:
-                        raise Exception()
-                except:
-                    print("Fehlerhafte Eingabe, versuche erneut")
-    
-            if(search or exit):
-                continue
-
-            release = releases[relchoice-1]
-            print("Du hast folgendes Release gewählt: " + str(release.tostring()))
-    
-            print("\n")
-
-            print("Das Release hat " + str(release.getEpisodeCount()) + " Episode(n)")
-            curEpisodes = -1
-            while(curEpisodes == -1):
-                epi_in = input("Wieviel Episoden hast du bereits runtergeladen? Die restlichen verfügbaren werden dann automatisch heruntergeladen (Leerlassen, wenn nur neue Episoden runterladen willst): ")
-                if(epi_in == "exit"):
-                    exit = True
-                    break
-                elif(epi_in == "suche"):
-                    search = True
-                    break
-                try:
-                    if(epi_in == ""):
-                        curEpisodes = release.getEpisodeCount()
-                    else:
-                        epi_in_int = int(epi_in)
-                        if(epi_in_int > release.getEpisodeCount()):
-                            print("Deine Episodenzahl darf nicht größer als verfügbare Episoden sein")
-                        else:
-                            curEpisodes = epi_in_int
-                except:
-                    print("Fehlerhafte Eingabe, muss eine Zahl sein")
-
-            print("\n")
-
-            customPackage = ""
-
-            if(compare(input("Möchtest du dem Anime einen spezifischen Paketnamen geben? Andernfalls wird der Name des Anime genutzt [J/N]: "), {"j", "ja", "yes", "y"}) == True):
-                customPackage = input("Packagename: ")
-
-            animedata = {
-                "name": anime.getName(),
-                "missing": [],
-                "releaseID": relchoice,
-                "episodes": curEpisodes,
-                "url": anime.getURL(),
-                "customPackage": customPackage
-            }
-    
-
-            os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-            f = open(botfile, "r")
-            data = json.load(f)
-            f.close()
-
-            haveAddedAnime = False
-
-            try:
-                anidata = data['anime']
-            except:
-                print("Erster Anime in Liste, füge hinzu")
-                fullanimedata = []
-                fullanimedata.append(animedata)
-                data['anime'] = fullanimedata 
-                haveAddedAnime = True
-                os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-                jfile = open(botfile, "w")
-                jfile.write(json.dumps(data, indent=4, sort_keys=True))
-                jfile.flush()
-                jfile.close()
-                print("Anime wurde hinzugefügt")
-
-            if(haveAddedAnime == False):              #Füge zu liste hinzu
-                isNewAnime = True
-                for animeentry in anidata:
-                    url = animeentry['url']
-                    release = animeentry['releaseID']
-                    if(url == anime.getURL() and release == relchoice):
-                        print("Anime mit gleichem Release ist bereits in Liste, gehe zurück zur Suche")
-                        isNewAnime = False
-                if(isNewAnime):
-                    print("Füge Anime zu liste hinzu")
-                    fullanimedata = data['anime']
-                    fullanimedata.append(animedata)
-                    data['anime'] = fullanimedata 
-#                animedata = {"anime": animedata}
-#                data.append(animedata)
-                    os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-                    jfile = open(botfile, "w")
-                    jfile.write(json.dumps(data, indent=4, sort_keys=True))
-                    jfile.flush()
-                    jfile.close()
-                    print("Anime wurde hinzugefügt")
-
-            print("\n\n\n")
-
 
 def startbot():
 
@@ -356,7 +53,7 @@ def startbot():
     else:
         pb = ""
     
-    al = animeloads(browser=browser, browserloc=browserlocation)
+    al = Animeloads(browser=browser, browserloc=browserlocation)
     
     if(interactive):
         if(compare(input("Möchtest du dich anmelden? [J/N]: "), {"j", "ja", "yes", "y"})):
@@ -488,47 +185,6 @@ def startbot():
             print("Schlafe " + str(timedelay) + " Sekunden")
             time.sleep(timedelay)
 
-def removeAnime():
-    jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
- 
-    while(jdhost == False):
-        print("Noch keine oder Fehlerhafte konfiguration, leite weiter zu Einstellungen")
-        editconfig()
-        jdhost, hoster, browser, browserlocation, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
-
-    os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-    f = open(botfile, "r")
-    data = json.load(f)
-    f.close()
-
-    anidata = ""
-    try:
-        anidata = data['anime']
-    except:
-        print("Du hast keine Anime in deiner Liste")
-
-
-    if(anidata != ""):
-        print("Deine Liste: ")
-        while(True):
-            for idx, animeentry in enumerate(anidata):
-                print("[ID: " + str(idx+1) + "] " + animeentry['name'] + " mit Release " + str(animeentry['releaseID']))
-            selection = input("Welchen Anime möchtest du löschen? (ID eingeben, \"exit\" zum beenden): ")
-            if(selection == "exit"):
-                print("Exit, beende...")
-                break
-            else:
-                try:
-                    sel_int = int(selection) - 1
-                    data['anime'].pop(sel_int)
-                    os.makedirs(os.path.dirname(botfolder), exist_ok=True)
-                    jfile = open(botfile, "w")
-                    jfile.write(json.dumps(data, indent=4, sort_keys=True))
-                    jfile.flush()
-                    jfile.close()
-                    print("Anime wurde gelöscht")
-                except:
-                    print("Fehler beim löschen des Eintrags")
 
 def printhelp():
     print("anibot.py [edit | start | add | remove]")

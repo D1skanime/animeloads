@@ -1,12 +1,15 @@
 import time
 import sys, os
+from settings_manager import settings, loadSettings
 
 import myjdapi
 
 import json
 
-from animeloads import animeloads
+from animeloads import Animeloads
 from animeloads import ALCaptchaException
+from utils import compare
+
 
 from getpass import getpass
 
@@ -16,215 +19,6 @@ settingsfile = "config/settings.json"
 settingsfolder = "config/"
 
 arglen = len(sys.argv)
-
-def compare(inputstring, validlist):
-    for v in validlist:
-        if(v.lower() in inputstring.lower()):
-            return True
-    return False
-
-def settings():
-    try:
-        os.makedirs(os.path.dirname(settingsfolder), exist_ok=True)
-        file = open(settingsfile, "r")
-        jdata = json.load(file)
-        for key in jdata:
-            if(key == "jdhost"):
-                jdhost = jdata[key]
-            if(key == "mode"):
-                mode = jdata[key]
-            if(key == "hoster"):
-                hoster = jdata[key]
-            if(key == "browserengine"):
-                browserengine = jdata[key]
-            if(key == "browserlocation"):
-                browserlocation = jdata[key]
-            if(key == "myjd_user"):
-                jd_user = jdata[key]
-            if(key == "myjd_pw"):
-                jd_pass = jdata[key]
-            if(key == "myjd_device"):
-                jd_device = jdata[key]
-        file.close()
-    except:
-        jdhost = ""
-        mode = ""
-        hoster = ""
-        browserengine = ""
-        browserlocation = ""
-        jd_user = ""
-        jd_pass = ""
-        jd_device = ""
-
-    if(hoster == 2):
-        hosterstr = "rapidgator"
-    if(hoster == 1):
-        hosterstr = "ddownload"
-    elif(hoster == 0):
-        hosterstr = "uploaded"
-    changehoster  = True
-    if(hoster != ""):
-        if(compare(input("Dein gewählter hoster: " + hosterstr + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
-            changehoster = False
-    if(changehoster):
-        while(True):
-            host = input("Welchen hoster bevorzugst du? rapidgator, uploaded oder ddownload: ")
-            if("uploaded" in host):
-                hoster = animeloads.UPLOADED
-                break
-            elif("ddownload" in host):
-                hoster = animeloads.DDOWNLOAD
-                break
-            elif("rapidgator" in host):
-                hoster = animeloads.RAPIDGATOR
-                break
-            else:
-                print("Bitte gib entweder uploaded, rapidgator oder ddowwnload ein")
-
-    changemode = True
-    if(mode != ""):
-        if(compare(input("Dein gewählter modus: " + mode + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
-            changemode = False
-
-    if(changemode):
-        if(compare(input("Möchtest du Jdownloader2 nutzen? Andernfalls werden die Links in der Konsole zurückgegeben [J/N]: "), {"j", "ja", "yes", "y"})):
-            change_jdhost = True
-        
-        
-            jd_device = ""
-            jd_user = ""
-            jd_pass = ""
-        
-            jd_choice = input("Läuft Jdownloader auf deinem lokalen Rechner[1] oder möchtest du MyJdownloader nutzen[2]?  (1 oder 2): ")
-            if(jd_choice == 1):
-                if(jdhost != ""):
-                    if(compare(input("Deine Adresse des Computers, auf dem JDownloader läuft lautet: " + jdhost + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
-                        change_jhdhost = False
-              
-                if(change_jdhost):
-                    if(input("Läuft dein JD2 auf deinem Lokalen Computer? Dann Eingabe leer lassen und bestätigen, falls nicht, gib die Adresse des Zeilrechners an: ") != ""):
-                        jdhost = input
-                    else:
-                        jdhost = "127.0.0.1"
-                jd_device = ""
-                jd_pass = ""
-                jd_user = ""
-            
-            else:
-                jd_choice = 2
-                jd=myjdapi.Myjdapi()
-                jd.set_app_key("animeloads")
-                
-                logincorrect = False
-                while(logincorrect == False):
-                    jd_user = input("MyJdownloader Nutzername: ")
-                    jd_pass = getpass("MyJdownloader Passwort: ")
-                    
-                    try:
-                      jd.connect(jd_user, jd_pass)
-                      logincorrect = True
-                    except:
-                        print("Fehlerhafte Logindaten")
-                
-                print("Logindaten sind korrekt")
-                jd.update_devices()
-                devices = jd.list_devices() 
-                
-                print("Deine verbundenen Geräte: ")
-                for dev in devices:
-                    print(dev['name'])
-                
-                foundDevice = False
-                while(foundDevice == False):
-                    jd_device = input("Gib den Namen des Gerätes, welches du benutzen willst ein: ")
-                    for dev in devices:
-                        devname = dev['name']
-                        if(jd_device == devname):
-                            foundDevice = True
-                            break
-                    if(foundDevice == False):
-                        print("Gerät nicht gefunden...")
-                
-                print("Nutze Gerät: " + jd_device)
-                
-                if(compare(input("Möchtest du das MyJDownloader passwort speichern (unverschlüsselt!!!)? Andernfalls musst du es jeden Programmstart eingeben [J/N]: "), {"j", "ja", "yes", "y"}) == False):
-                    jd_pass = ""
-        
-                jdhost = ""
-            mode = "jdownloader"
-        else:
-            print("Gebe links in Console aus...")
-            mode = "console"
-            jdhost = ""
-            jd_user = ""
-            jd_pass = ""
-            jd_device = ""
-
-    if(browserengine == 0):
-        browserstring = "Firefox"
-    elif(browserengine == 1):
-        browserstring = "Chrome"
-
-    changebrowser = True
-    if(browserengine != ""):
-        if(compare(input("Dein gewählter Browser: " + browserstring + ", möchtest du ihn wechseln? [J/N]: "), {"j", "ja", "yes", "y"}) == False):
-            changebrowser = False
-    if(changebrowser):
-        while(True):
-            browser = input("Welchen Browser möchtest du nutzen? Darunter fallen auch forks der jeweiligen Browser (Chrome/Firefox)? Achte darauf, dass Chromedriver (Chrome) oder Geckodriver (Firefox) im gleichen Ordern wie das Script liegt: ")
-            if(browser == "Chrome"):
-                browserengine = animeloads.CHROME
-                break
-            elif(browser == "Firefox"):
-                browserengine = animeloads.FIREFOX
-                break
-            else:
-                print("Fehlerhafter Input, entweder Chrome oder Firefox")
-                
-        if(compare(input("Ist dein Browser ein fork von chrome/firefox oder an einem anderen als dem standardpfad installiert? [J/N]: "), {"j", "ja", "yes", "y"})):
-            browserlocation = input("Dann gib jetzt den Pfad der Browserdatei an (inklusive Endung): ")
-
-    data = {
-        "hoster": hoster,
-        "mode": mode,
-        "browserengine": browserengine,
-        "browserlocation": browserlocation,
-        "jdhost": jdhost,
-        "myjd_user": jd_user,
-        "myjd_pw": jd_pass,
-        "myjd_device": jd_device
-    }
-
-    jdata = json.dumps(data, indent=4, sort_keys=True)
-
-    os.makedirs(os.path.dirname(settingsfolder), exist_ok=True)
-    file = open(settingsfile, "w")
-    file.write(jdata)
-    file.close()
-
-def loadSettings():
-    os.makedirs(os.path.dirname(settingsfolder), exist_ok=True)
-    file = open(settingsfile, "r")
-    jdata = json.load(file)
-    for key in jdata:
-        if(key == "jdhost"):
-            jdhost = jdata[key]       
-        if(key == "mode"):
-            mode = jdata[key]
-        if(key == "hoster"):
-            hoster = jdata[key]
-        if(key == "browserengine"):
-            browserengine = jdata[key]
-        if(key == "browserlocation"):
-            browserlocation = jdata[key]
-        if(key == "myjd_user"):
-            myjd_user = jdata[key]
-        if(key == "myjd_pw"):
-            myjd_pass = jdata[key]
-        if(key == "myjd_device"):
-            myjd_device = jdata[key]
-    file.close()
-    return jdhost, mode, hoster, browserengine, browserlocation, myjd_user, myjd_pass, myjd_device
 
 def interactive():
 
@@ -239,7 +33,7 @@ def interactive():
             settings()
 
 
-    al = animeloads(browser=browserengine, browserloc=browserlocation)
+    al = Animeloads(browser=browserengine, browserloc=browserlocation)
 
     if(compare(input("Möchtest du dich anmelden? [J/N]: "), {"j", "ja", "yes", "y"})):
         user = input("Username: ")
@@ -412,7 +206,7 @@ def interactive():
     print("Programm wird beendet, vielen Dank fürs benutzen")
 
 if(arglen > 1):
-    al = animeloads()
+    al = Animeloads()
     for arg in sys.argv:
         if("--help" in arg):
             print("Syntax: <downloader.py> [--url URL] [--user username] [--passwd password] [--list listfile] [--release release] [--episode episode] [--hoster hoster] [--jd 127.0.0.1] [--browser chrome] [--browserloc Browserpfad] [--myjd_user username/email] [--myjd_pw password] [--myjd_device Devicename]")
@@ -452,11 +246,11 @@ if(arglen > 1):
             try:
                 hoster = sys.argv[i+1]
                 if("uploaded".lower() in hoster.lower()):
-                    hoster = animeloads.UPLOADED
+                    hoster = Animeloads.UPLOADED
                 elif("ddownload".lower() in hoster.lower()):
-                    hoster = animeloads.DDOWNLOAD
+                    hoster = Animeloads.DDOWNLOAD
                 elif("rapidgator".lower() in hoster.lower()):
-                    hoster = animeloads.rapidgator
+                    hoster = Animeloads.rapidgator
                 else:
                     raise Exception()
                 print("Set hoster to " + sys.argv[i+1])
@@ -476,9 +270,9 @@ if(arglen > 1):
             try:
                 browser = sys.argv[i+1]
                 if("chrome".lower() in browser.lower()):
-                    browser = animeloads.CHROME
+                    browser = Animeloads.CHROME
                 elif("firefox".lower() in browser.lower()):
-                    browser = animeloads.FIREFOX
+                    browser = Animeloads.FIREFOX
                 else:
                     raise Exception()
                 print("Set browser to " + sys.argv[i+1])
@@ -569,7 +363,7 @@ if(arglen > 1):
                 print("Error, list argument is missing or list is invalid")
                 sys.exit(1)
     
-    al = animeloads(browser=browser, browserloc=browserlocation)
+    al = Animeloads(browser=browser, browserloc=browserlocation)
     
     if(linklist != ""):
         try:
@@ -686,3 +480,8 @@ elif(arglen == 1):
 else:
     print("Falsche Argumente: <downloader.py> [--url URL] [--user username] [--passwd password] [--list listfile] [--release release] [--episode episode] [--hoster hoster] [--jd 127.0.0.1] [--browser chrome] [--browserloc Browserpfad] [--myjd_user username/email] [--myjd_pw password] [--myjd_device Devicename]")
     sys.exit(1)
+
+
+if __name__ == "__main__":
+    print("Starte interaktiven Modus...")
+    interactive()   

@@ -37,7 +37,7 @@ from fake_useragent import UserAgent
 #captcha
 import time, json, hashlib, cv2, numpy, shutil
 
-class animeloads:
+class Animeloads:
 
     FIREFOX = 0
     CHROME = 1
@@ -57,7 +57,7 @@ class animeloads:
         if user and pw:
             self.login(self.user, self.pw)
             
-        if browser == animeloads.CHROME:
+        if browser == Animeloads.CHROME:
             options = webdriver.ChromeOptions()
             options.headless = True  # Headless-Modus aktivieren
 
@@ -66,7 +66,7 @@ class animeloads:
 
             driver = webdriver.Chrome(options=options)  # Selenium Manager übernimmt den Rest
 
-        elif browser == animeloads.FIREFOX:
+        elif browser == Animeloads.FIREFOX:
             options = webdriver.FirefoxOptions()
             options.headless = True  
 
@@ -828,16 +828,16 @@ class anime():
 
     def downloadEpisode(self, episode, release, hoster, browser, browserlocation="", jdhost="", myjd_user="", myjd_pw="", myjd_device="", pkgName=""):
         if(browser == "Firefox"):
-            browser = animeloads.FIREFOX
+            browser = Animeloads.FIREFOX
         elif(browser == "Chrome"):
-            browser = animeloads.CHROME
+            browser = Animeloads.CHROME
         try:
             if("uploaded" in hoster.lower()):
-                hoster = animeloads.UPLOADED
+                hoster = Animeloads.UPLOADED
             elif("ddownload" in hoster.lower()):
-                hoster = animeloads.DDOWNLOAD
+                hoster = Animeloads.DDOWNLOAD
             elif("rapidgator" in hoster.lower()):
-                hoster = animeloads.RAPIDGATOR
+                hoster = Animeloads.RAPIDGATOR
         except:
             pass
 
@@ -850,7 +850,7 @@ class anime():
        "response": "nocaptcha"}
 
         #Create Headless browser to bypass adblock detection
-        if browser == animeloads.CHROME:
+        if browser == Animeloads.CHROME:
             options = webdriver.ChromeOptions()
             options.headless = True  # Headless-Modus aktivieren
 
@@ -859,7 +859,7 @@ class anime():
 
             driver = webdriver.Chrome(options=options)
 
-        elif(browser == animeloads.FIREFOX):
+        elif(browser == Animeloads.FIREFOX):
             options = webdriver.FirefoxOptions()
             options.headless = True
 
@@ -964,9 +964,9 @@ return xhr.response"
         crypted = ""
 
 
-        if(hoster == animeloads.DDOWNLOAD):
+        if(hoster == Animeloads.DDOWNLOAD):
             cnldata = content_ddl
-        elif(hoster == animeloads.RAPIDGATOR):
+        elif(hoster == Animeloads.RAPIDGATOR):
             cnldata = content_rapid
         else:
             cnldata = content_uploaded
