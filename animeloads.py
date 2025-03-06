@@ -1,39 +1,18 @@
-import requests, http.cookiejar
-
-import myjdapi
-
-
-
-from lxml import etree
-from lxml import html
-
+from anime_search import AnimeSearch
+from fake_useragent import UserAgent
+import requests
+from selenium import webdriver
 from html_table_parser import HTMLTableParser
-
-import subprocess
-
 from Crypto.Cipher import AES
-
 from binascii import unhexlify
 import base64
-
-import numpy, random, time
-
 import re
-
-import os, sys
-
+import numpy, random, time
 from urllib.parse import unquote
-
-from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-import selenium.webdriver.chrome.options
-import selenium.webdriver.firefox.options
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from fake_useragent import UserAgent
-
-
+import myjdapi
+from lxml import etree
+from lxml import html
+import os, sys
 #captcha
 import time, json, hashlib, cv2, numpy, shutil
 
@@ -86,82 +65,13 @@ class Animeloads:
         for cookie in cookies:
             self.session.cookies.set(cookie['name'], cookie['value'])
         driver.quit()
-        
+
+        self.search_module = AnimeSearch(self)
+
     def search(self, query):
-        searchdata = self.session.get(apihelper.getSearchURL(query), allow_redirects=False)
-        searchresults = []
-        print(searchdata.status_code)
-        if(searchdata.status_code == 302):  #only 1 result, got redirect
-            redir_url = searchdata.headers['Location']
-            redir_anime = anime(redir_url, self.session, self)
-            #num__results = 1
-            result = searchResult(redir_url, redir_anime.getName(), redir_anime.getType(), redir_anime.getYear(), redir_anime.getCurrentEpisodes(), redir_anime.getMaxEpisodes(), ["UNKNOWN"], ["UNKNOWN"], redir_anime.getMainGenre(), self.session, self)
-            searchresults.append(result)
-        else:
-            search_dom = etree.HTML(searchdata.text)
-            searchboxes = search_dom.xpath("//div/div[@class='panel panel-default' and 1]/div[@class='panel-body' and 1]")
-            #num__results = len(searchboxes)
-            for result in searchboxes:
-                url = ""                #done
-                name = ""               #done
-                typ = ""                #done
-                relDate = ""            #done
-                epCountCurrent = 0      #done
-                epCountMax = 0          #done
-                dubLang = []            #done
-                subLang = []            #done
-                genre = ""              #done
-                boxtree = etree.HTML(html.tostring(result))
-                result_links = boxtree.xpath("//a")
-                isFirst = True              #Check if link is first entry, cause there are two
-                for link in result_links:
-                    linktext = link.text
-                    href = link.get('href')
-                    #if linktext is None or href is None:
-                    #    continue
-                    if("genre" in href):
-                        genre = linktext
-                    elif("https://www.anime-loads.org/anime-series" in href):
-                        typ = "series"
-                    elif("https://www.anime-loads.org/anime-movies" in href):
-                        typ = "movie"
-                    elif("https://www.anime-loads.org/bonus" in href):
-                        typ = "bonus"
-                    elif("https://www.anime-loads.org/ova" in href):
-                        typ = "ova"
-                    elif("https://www.anime-loads.org/special" in href):
-                        typ = "special"
-                    elif("https://www.anime-loads.org/web" in href):
-                        typ = "web"
-                    elif("https://www.anime-loads.org/year/" in href):  #Year-element
-                        yearsplit = href.split("/")
-                        year = yearsplit[len(yearsplit)-1]
-                    elif("https://www.anime-loads.org/media/" in href): #href to detail site, contains link and name
-                        if(isFirst):
-                            isFirst = False
-                            continue
-                        url = href
-                        name = linktext
-                        isFirst = True
-    
-                result_span = boxtree.xpath("//span[@class='label label-gold']")    #Span-Element for Episode count
-                for span in result_span:
-                    epsplit = str(html.tostring(span)).split("/")
-                    epCountCurrent = re.sub("[^0-9]", "", epsplit[1])   #Remove non-numbers from string
-                    epCountMax = re.sub("[^0-9]", "", epsplit[2])
-    
-                lang_class = boxtree.xpath("//div[@class='mt10 mb10' and 3]")[0]       #Line which contains language flags, take first line as there is only one
-                langsplit = str(html.tostring(lang_class)).split("\"")
-                for substring in langsplit:
-                    if("Sprache: " in substring):
-                        dubLang.append(substring.replace("Sprache: ", ""))
-                    elif("Untertitel: " in substring):
-                        subLang.append(substring.replace("Untertitel: ", ""))
-                result = searchResult(url, name, typ, relDate, epCountCurrent, epCountMax, dubLang, subLang, genre, self.session, self)
-                searchresults.append(result)
-        return searchresults
-            
-    
+        """Delegiert die Suche an das ausgelagerte AnimeSearch-Modul"""
+        return self.search_module.search(query)  
+
     def getAnime(self, url):
         return anime(url, self.session, self)
 
