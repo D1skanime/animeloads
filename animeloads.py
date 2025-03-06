@@ -1,7 +1,6 @@
 import requests, http.cookiejar
 
 import myjdapi
-from send_to_jd2 import send_to_myjd
 
 
 
