@@ -14,7 +14,7 @@ botfile = "config/ani.json"
 botfolder = "config/"
 
 
-def loadconfig():
+def loadconfig(mode=None):
     try:
         os.makedirs(os.path.dirname(botfolder), exist_ok=True)
         with open(botfile, "r") as infile:
@@ -22,7 +22,10 @@ def loadconfig():
     except Exception as e:
         printException(e)
         print("ani.json nicht gefunden oder fehlerhaft.")
-        return False, False, False, False, False, False, False, False, False
+        return False if mode == "anime" else (False,) *9
+
+    if mode == "anime":
+        return data.get("anime",[]) 
     
     try:
         value = data["settings"]

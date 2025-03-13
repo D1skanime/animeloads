@@ -5,18 +5,9 @@ from error_handler import printException
 from utils import compare
 from environment import is_docker
 from anime_manager import addAnime, removeAnime
-
-
-
-
 from getpass import getpass
-
 from datetime import datetime
-
 from pushbullet import Pushbullet
-
-import animeloads
-
 from animeloads import Animeloads
 
 arglen = len(sys.argv)

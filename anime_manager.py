@@ -84,8 +84,11 @@ def addAnime():
             with open("config/ani.json", "r") as f:
                 data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            data = {"anime": []}
-        
+             data = {}
+           
+        if "anime" not in data:
+            data["anime"] = []
+
         if any(a["url"] == anime.getURL() and a["releaseID"] == relchoice for a in data["anime"]):
             print("Dieser Anime ist bereits in der Liste.")
             continue
@@ -99,21 +102,16 @@ def addAnime():
 
 def removeAnime():
     """ Entfernt einen Anime aus der Liste. """
-    jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pass, myjd_device = loadconfig()
+    data = loadconfig("anime")
     
-    try:
-        with open("config/ani.json", "r") as f:
-            data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Keine Anime-Liste gefunden.")
-        return
-    
-    if not data.get("anime"):
+    #Dodo direkt Fragen ob man ANime suchen will
+    if not data:
         print("Die Anime-Liste ist leer.")
+        print("Füge zuerst einen Anime hinzu in dem du python anibot.py -add eingibts")
         return
     
     print("Deine Anime-Liste:")
-    for idx, animeentry in enumerate(data["anime"], start=1):
+    for idx, animeentry in enumerate(data, start=1):
         print(f"[{idx}] {animeentry['name']} mit Release {animeentry['releaseID']}")
     
     while True:
@@ -124,10 +122,22 @@ def removeAnime():
         
         try:
             sel_int = int(selection) - 1
-            if 0 <= sel_int < len(data["anime"]):
-                removed_anime = data["anime"].pop(sel_int)
+            if 0 <= sel_int < len(data):
+                removed_anime = data.pop(sel_int)
+
+                # **Lade die komplette JSON-Datei, um die Änderungen zu speichern**
+                try:
+                    with open("config/ani.json", "r") as f:
+                        full_data = json.load(f)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    full_data = {}  # Falls Datei nicht existiert oder defekt ist
+
+                full_data["anime"] = data  # **Neue Anime-Liste setzen**
+
+                # **Jetzt die komplette JSON mit allen Einstellungen speichern**
                 with open("config/ani.json", "w") as f:
-                    json.dump(data, f, indent=4)
+                    json.dump(full_data, f, indent=4)
+
                 print(f"Anime '{removed_anime['name']}' wurde entfernt.")
                 return
             else:
