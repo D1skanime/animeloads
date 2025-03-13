@@ -23,6 +23,9 @@ def loadconfig(mode=None):
         printException(e)
         print("ani.json nicht gefunden oder fehlerhaft.")
         return False if mode == "anime" else (False,) *9
+    
+    if mode == "edit":
+        return data
 
     if mode == "anime":
         return data.get("anime",[]) 
@@ -41,7 +44,18 @@ def loadconfig(mode=None):
 
 def editconfig():
     print("Konfiguration bearbeiten...")
-    jdhost, hoster, browser, browserlocation, pushkey, timedelay, myjd_user, myjd_pw, myjd_device = loadconfig()
+    data = loadconfig("edit")
+
+    settings = data["settings"]
+    jdhost = settings.get("jdhost", "127.0.0.1")
+    hoster = settings.get("hoster", 0)
+    browser = settings.get("browserengine", 0)
+    browserlocation = settings.get("browserlocation", "")
+    pushkey = settings.get("pushbullet_apikey", "")
+    timedelay = settings.get("timedelay", 10)
+    myjd_user = settings.get("myjd_user", "")
+    myjd_pw = settings.get("myjd_pw", "")
+    myjd_device = settings.get("myjd_device", "")
     
     # Hoster ändern
     hoster_map = {"uploaded": 0, "ddownload": 1, "rapidgator": 2}
@@ -96,7 +110,7 @@ def editconfig():
         myjd_device = input("Neues MyJDownloader Gerät: ") or ""
     
     # Speichern der neuen Konfiguration
-    settingsdata = {
+    data["settings"] = {
         "jdhost": jdhost,
         "hoster": hoster,
         "browserengine": browser,
@@ -110,7 +124,7 @@ def editconfig():
     
     os.makedirs(os.path.dirname(botfolder), exist_ok=True)
     with open(botfile, "w") as jfile:
-        json.dump({"settings": settingsdata}, jfile, indent=4, sort_keys=True)
+        json.dump(data, jfile, indent=4, sort_keys=True)
     
     print("Einstellungen gespeichert.")
 

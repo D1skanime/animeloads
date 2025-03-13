@@ -104,7 +104,7 @@ def removeAnime():
     """ Entfernt einen Anime aus der Liste. """
     data = loadconfig("anime")
     
-    #Dodo direkt Fragen ob man ANime suchen will
+    #Dodo direkt Fragen ob man Anime suchen will
     if not data:
         print("Die Anime-Liste ist leer.")
         print("Füge zuerst einen Anime hinzu in dem du python anibot.py -add eingibts")
